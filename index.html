@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Notes</title>
+    <style>
+        :root { --ios-gold: #d4a017; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            overflow: hidden; background: #000;
+        }
+
+        /* THE BACKGROUND - Using your mountains.JPG */
+        .wallpaper-container {
+            position: absolute; width: 100%; height: 100%;
+            background: url('mountains.JPG') center/cover no-repeat;
+            z-index: 1;
+        }
+
+        /* BLUR LAYER - This creates the real iPhone glass effect */
+        .blur-overlay {
+            position: absolute; width: 100%; height: 100%;
+            backdrop-filter: blur(25px); /* Adjust this for more/less blur */
+            -webkit-backdrop-filter: blur(25px);
+            background: rgba(0, 0, 0, 0.2); /* Darkens the image slightly for readability */
+            z-index: 2;
+        }
+
+        /* LOCK SCREEN */
+        #lock-screen {
+            position: absolute; width: 100%; height: 100%;
+            z-index: 100; display: flex; flex-direction: column; align-items: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s;
+        }
+
+        #clock { color: white; font-size: 80px; font-weight: 200; margin-top: 80px; letter-spacing: -2px; z-index: 101; }
+
+        .passcode-section { margin-top: 30px; text-align: center; color: white; z-index: 101; font-weight: 400; }
+        .dots { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+        .dot { width: 12px; height: 12px; border: 1.5px solid white; border-radius: 50%; }
+        .dot.filled { background: white; }
+
+        .keypad {
+            display: grid; grid-template-columns: repeat(3, 75px); gap: 25px;
+            margin-top: auto; margin-bottom: 90px; z-index: 101;
+        }
+        .key {
+            width: 75px; height: 75px; border-radius: 50%;
+            background: rgba(255,255,255,0.2); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; backdrop-filter: blur(5px);
+        }
+
+        /* HOME SCREEN */
+        #home-screen {
+            position: absolute; width: 100%; height: 100%;
+            display: none; grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            padding: 60px 25px; gap: 20px; z-index: 50;
+        }
+        .icon { text-align: center; color: white; font-size: 11px; cursor: pointer; }
+        .icon img { width: 60px; height: 60px; border-radius: 14px; display: block; margin: 0 auto 5px; }
+        .ghost { opacity: 0.5; filter: blur(1px); }
+
+        /* NOTES APP */
+        #notes-app {
+            position: absolute; width: 100%; height: 100%;
+            background: white; display: none; z-index: 200; flex-direction: column;
+        }
+        .notes-header { padding: 50px 20px 10px; display: flex; justify-content: space-between; background: #f9f9f9; border-bottom: 0.5px solid #ccc; }
+        .notes-header span { color: var(--ios-gold); font-size: 17px; }
+        #note-editor { flex: 1; padding: 20px; font-size: 19px; outline: none; color: #111; line-height: 1.4; }
+
+        /* UI Animations */
+        .unlock-zoom { transform: scale(3); opacity: 0; pointer-events: none; }
+        .shake { animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+    </style>
+</head>
+<body>
+
+    <div class="wallpaper-container"></div>
+    <div class="blur-overlay"></div>
+
+    <div id="lock-screen">
+        <div id="clock">12:00</div>
+        <div class="passcode-section">
+            <div>Enter Passcode</div>
+            <div class="dots" id="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>
+        <div class="keypad">
+            <div class="key" onclick="press('1')">1</div><div class="key" onclick="press('2')">2</div><div class="key" onclick="press('3')">3</div>
+            <div class="key" onclick="press('4')">4</div><div class="key" onclick="press('5')">5</div><div class="key" onclick="press('6')">6</div>
+            <div class="key" onclick="press('7')">7</div><div class="key" onclick="press('8')">8</div><div class="key" onclick="press('9')">9</div>
+            <div></div><div class="key" onclick="press('0')">0</div>
+        </div>
+    </div>
+
+    <div id="home-screen">
+        <div class="icon ghost"><img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png"><span>Mail</span></div>
+        <div class="icon ghost"><img src="https://cdn-icons-png.flaticon.com/512/2991/2991108.png"><span>Photos</span></div>
+        <div class="icon" onclick="openNotes()"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Notes_icon.svg"><span>Notes</span></div>
+        <div class="icon ghost"><img src="https://cdn-icons-png.flaticon.com/512/2991/2991110.png"><span>Settings</span></div>
+    </div>
+
+    <div id="notes-app">
+        <div class="notes-header">
+            <span onclick="closeNotes()">&#10094; Notes</span>
+            <span style="font-weight: 600;" onclick="closeNotes()">Done</span>
+        </div>
+        <div id="note-editor" contenteditable="true" oninput="saveNote()"></div>
+    </div>
+
+    <script>
+        let currentInput = "";
+        const validPrefixes = ["12", "23", "34", "45", "56", "67", "78"];
+        const daysMap = {"12":"Monday","23":"Tuesday","34":"Wednesday","45":"Thursday","56":"Friday","67":"Saturday","78":"Sunday"};
+
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours() % 12 || 12;
+            let minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('clock').innerText = `${hours}:${minutes}`;
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        function press(num) {
+            if (currentInput.length < 4) {
+                currentInput += num; updateDots();
+                if (currentInput.length === 4) {
+                    const prefix = currentInput.substring(0, 2);
+                    if (currentInput.endsWith("80") && validPrefixes.includes(prefix)) {
+                        unlock(daysMap[prefix]);
+                    } else { triggerError(); }
+                }
+            }
+        }
+
+        function updateDots() {
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, i) => dot.classList.toggle('filled', i < currentInput.length));
+        }
+
+        function triggerError() {
+            const ls = document.getElementById('lock-screen');
+            ls.classList.add('shake');
+            setTimeout(() => { ls.classList.remove('shake'); currentInput = ""; updateDots(); }, 400);
+        }
+
+        function unlock(secretDay) {
+            let savedText = localStorage.getItem('note_content') || "";
+            if (savedText.includes('xxx')) {
+                savedText = savedText.replace(/xxx/g, secretDay);
+                localStorage.setItem('note_content', savedText);
+                document.getElementById('note-editor').innerText = savedText;
+            }
+            document.getElementById('lock-screen').classList.add('unlock-zoom');
+            document.getElementById('home-screen').style.display = 'grid';
+        }
+
+        function openNotes() {
+            document.getElementById('notes-app').style.display = 'flex';
+            document.getElementById('note-editor').innerText = localStorage.getItem('note_content') || "";
+        }
+
+        function closeNotes() { document.getElementById('notes-app').style.display = 'none'; }
+        function saveNote() { localStorage.setItem('note_content', document.getElementById('note-editor').innerText); }
+    </script>
+</body>
+</html>
