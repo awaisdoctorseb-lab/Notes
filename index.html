@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="iPhone">
+    <link rel="apple-touch-icon" href="pic3.WEBP">
+    <title>iPhone Simulator</title>
+    <style>
+        :root {
+            --ios-blur: blur(35px) saturate(180%);
+            --ios-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            font-family: var(--ios-font);
+            overflow: hidden; background: #000;
+            user-select: none;
+        }
+
+        .preload { display: none; }
+
+        .screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; background-size: cover; background-position: center;
+            flex-direction: column; z-index: 10;
+        }
+        .screen.active { display: flex; }
+
+        /* LOCK SCREEN */
+        #lock-screen { 
+            background-image: url('mountains.jpg'); 
+            align-items: center; 
+            justify-content: flex-start; 
+            padding-top: 110px; 
+        }
+        .lock-info { 
+            text-align: center; color: white; 
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        #lock-date { 
+            font-size: 21px; font-weight: 500; 
+            letter-spacing: 0.2px; text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        #lock-time { 
+            font-size: 94px; font-weight: 800; 
+            letter-spacing: -3px; line-height: 0.9;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        .swipe-hint { 
+            position: absolute; bottom: 60px; color: white; 
+            font-size: 16px; opacity: 0.9; animation: pulse 2.5s infinite; 
+        }
+
+        /* KEYPAD SCREEN */
+        #keypad-screen { 
+            background-image: url('mountains.jpg'); 
+            color: white; align-items: center; 
+            justify-content: flex-start;
+            padding-top: 140px; 
+        }
+        #keypad-screen::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.35); backdrop-filter: var(--ios-blur); -webkit-backdrop-filter: var(--ios-blur);
+            z-index: -1;
+        }
+        .passcode-header { font-size: 19px; margin-bottom: 20px; font-weight: 400; }
+        .dots-container { display: flex; gap: 22px; margin-bottom: 60px; }
+        .dot { width: 13px; height: 13px; border: 1.5px solid white; border-radius: 50%; transition: background 0.2s; }
+        .dot.filled { background: white; }
+
+        .keypad { 
+            display: grid; 
+            grid-template-columns: repeat(3, 82px); 
+            gap: 24px 28px; 
+        }
+        .keypad button {
+            width: 82px; height: 82px; 
+            border-radius: 50%; border: none;
+            background: rgba(255,255,255,0.18); color: white; font-size: 36px;
+            font-family: var(--ios-font); font-weight: 400;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .keypad button:active { background: rgba(255,255,255,0.4); }
+
+        /* HOME SCREEN - Icons moved lower */
+        #home-screen { 
+            background-image: url('mountains.jpg'); 
+            padding-top: 120px; /* Increased top padding to push apps down */
+            padding-left: 25px;
+            padding-right: 25px;
+        }
+        .app-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 25px; 
+        }
+        .app-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .app-icon img { width: 60px; height: 60px; border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .app-icon span { color: white; font-size: 12px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+
+        /* NOTES APP */
+        #notes-app { background: #fff; z-index: 100; color: #000; }
+        .notes-header { 
+            padding: 55px 20px 10px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(248,248,248,0.9); border-bottom: 0.5px solid #ccc;
+        }
+        .notes-header button { color: #f2a007; border: none; background: none; font-size: 18px; font-weight: 600; cursor: pointer; }
+        .notes-title { font-weight: 700; font-size: 17px; }
+        .notes-body { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        #note-subtitle { color: #8a8a8e; font-size: 13px; margin-bottom: 8px; text-align: center; }
+        #note-textarea { 
+            width: 100%; flex: 1; border: none; outline: none; 
+            font-size: 17px; line-height: 1.4; font-family: var(--ios-font);
+            resize: none; color: #000; padding: 0;
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-12px); } 40%, 80% { transform: translateX(12px); } }
+        .shake { animation: shake 0.4s ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div class="preload">
+        <img src="pic1.WEBP"><img src="pic2.WEBP"><img src="pic3.WEBP"><img src="pic4.WEBP">
+    </div>
+
+    <div id="lock-screen" class="screen active" onclick="showKeypad()">
+        <div class="lock-info">
+            <div id="lock-date">---</div>
+            <div id="lock-time">00:00</div>
+        </div>
+        <div class="swipe-hint">Tap to Unlock</div>
+    </div>
+
+    <div id="keypad-screen" class="screen">
+        <div class="passcode-header">Enter Passcode</div>
+        <div id="dots" class="dots-container">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="keypad">
+            <button onclick="inputNum('1')">1</button>
+            <button onclick="inputNum('2')">2</button>
+            <button onclick="inputNum('3')">3</button>
+            <button onclick="inputNum('4')">4</button>
+            <button onclick="inputNum('5')">5</button>
+            <button onclick="inputNum('6')">6</button>
+            <button onclick="inputNum('7')">7</button>
+            <button onclick="inputNum('8')">8</button>
+            <button onclick="inputNum('9')">9</button>
+            <div></div>
+            <button onclick="inputNum('0')">0</button>
+            <button style="background:none; font-size: 16px;" onclick="resetPass()">Cancel</button>
+        </div>
+    </div>
+
+    <div id="home-screen" class="screen">
+        <div class="app-grid">
+            <div class="app-icon"><img src="pic1.WEBP"><span>Clock</span></div>
+            <div class="app-icon"><img src="pic2.WEBP"><span>iTunes</span></div>
+            <div class="app-icon" onclick="openNotes()"><img src="pic3.WEBP"><span>Notes</span></div>
+            <div class="app-icon"><img src="pic4.WEBP"><span>Safari</span></div>
+        </div>
+    </div>
+
+    <div id="notes-app" class="screen">
+        <div class="notes-header">
+            <button onclick="closeNotes()">Done</button>
+            <div class="notes-title">Notes</div>
+            <button style="visibility: hidden">Done</button>
+        </div>
+        <div class="notes-body">
+            <div id="note-subtitle">Date & Time</div>
+            <textarea id="note-textarea" spellcheck="false" placeholder="Start writing..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        let currentPin = "";
+        const mapping = {
+            "1280": "Monday", "2380": "Tuesday", "3480": "Wednesday",
+            "4580": "Thursday", "5680": "Friday", "6780": "Saturday", "7880": "Sunday"
+        };
+
+        function updateClock() {
+            const now = new Date();
+            let h = now.getHours();
+            let m = now.getMinutes();
+            h = h % 12 || 12;
+            m = m < 10 ? '0' + m : m;
+            document.getElementById('lock-time').innerText = `${h}:${m}`;
+            
+            const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+            const dayNum = now.getDate();
+            const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+            document.getElementById('lock-date').innerText = `${dayName}, ${dayNum} ${monthName}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function showKeypad() {
+            document.getElementById('lock-screen').classList.remove('active');
+            document.getElementById('keypad-screen').classList.add('active');
+        }
+
+        function resetPass() {
+            currentPin = "";
+            updateDots();
+            document.getElementById('keypad-screen').classList.remove('active');
+            document.getElementById('lock-screen').classList.add('active');
+        }
+
+        function inputNum(n) {
+            if (currentPin.length < 4) {
+                currentPin += n;
+                updateDots();
+            }
+            if (currentPin.length === 4) {
+                if (mapping[currentPin]) {
+                    handleUnlock(mapping[currentPin]);
+                } else {
+                    const dots = document.getElementById('dots');
+                    dots.classList.add('shake');
+                    setTimeout(() => {
+                        dots.classList.remove('shake');
+                        currentPin = "";
+                        updateDots();
+                    }, 400);
+                }
+            }
+        }
+
+        function updateDots() {
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((d, i) => {
+                d.classList.toggle('filled', i < currentPin.length);
+            });
+        }
+
+        function handleUnlock(day) {
+            let note = localStorage.getItem('apple_note_text') || "";
+            if (note.includes('xxx')) {
+                note = note.replace(/xxx/g, day);
+                localStorage.setItem('apple_note_text', note);
+            }
+            document.getElementById('keypad-screen').classList.remove('active');
+            document.getElementById('home-screen').classList.add('active');
+            currentPin = "";
+            updateDots();
+        }
+
+        function openNotes() {
+            document.getElementById('home-screen').classList.remove('active');
+            document.getElementById('notes-app').classList.add('active');
+            const area = document.getElementById('note-textarea');
+            area.value = localStorage.getItem('apple_note_text') || "";
+            const now = new Date();
+            const offset = Math.floor(Math.random() * 3) + 2; 
+            now.setMinutes(now.getMinutes() - offset);
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            document.getElementById('note-subtitle').innerText = `${dateStr} at ${timeStr}`;
+        }
+
+        function closeNotes() {
+            document.getElementById('notes-app').classList.remove('active');
+            document.getElementById('home-screen').classList.add('active');
+        }
+
+        document.getElementById('note-textarea').addEventListener('input', (e) => {
+            localStorage.setItem('apple_note_text', e.target.value);
+        });
+
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>
